@@ -38,3 +38,4 @@ android {
 }
 
 preBuild.dependsOn('cargoBuild')
+publish.dependsOn('assembleRelease')

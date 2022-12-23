@@ -74,7 +74,6 @@ android {
         targetCompatibility JavaVersion.VERSION_11
     }
     namespace 'ru.vtosters.lite'
-    ndkVersion '25.1.8937393'
 }
 
 dependencies {
