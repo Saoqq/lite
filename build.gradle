@@ -29,7 +29,7 @@ allprojects {
             // TODO: set vt org
             credentials {
                 username = "saoqq"
-                password = "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"
+                password = "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"
             }
         }
     }
