@@ -1,23 +1,10 @@
-import java.nio.file.Files
-import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
 import org.apache.tools.ant.taskdefs.condition.Os
 
 
 plugins {
     id 'com.android.application'
     id 'net.nemerosa.versioning' version '2.15.1'
-    id 'org.mozilla.rust-android-gradle.rust-android'
-}
-
-cargo {
-    profile = 'release'
-    module = '../native-effects'
-    libname = 'native-effects'
-    targets = ["arm", "arm64"]
-    prebuiltToolchains = true
-    pythonCommand = "python3"
 }
 
 def smaliFolder = projectDir.toPath().resolve("../smali").normalize()
@@ -33,53 +20,13 @@ task cleanVersionFile {
 
 task exportDex {
     doLast {
+        File moduleDir = projectDir
         try {
-            File moduleDir = projectDir
-            ZipInputStream inputStream = new ZipInputStream(new FileInputStream(moduleDir.getAbsolutePath() + "/build/outputs/apk/release/app-release-unsigned.apk"))
             ZipFile file = new ZipFile(moduleDir.getAbsolutePath() + "/build/outputs/apk/release/app-release-unsigned.apk");
-            ZipEntry entry
-            while ((entry = inputStream.nextEntry) != null) {
-                if (entry.getName().equals("classes.dex")) {
-                    print('classes.dex found!')
-
-                    FileOutputStream output = new FileOutputStream(new File(moduleDir.getAbsoluteFile(), "classes6.dex"))
-
-                    byte[] buffer = new byte[1024]
-                    int len = 0
-                    while ((len = inputStream.read(buffer)) > 0) {
-                        output.write(buffer, 0, len)
-                    }
-                    output.close()
-                }
-                if (entry.getName().equals("classes2.dex")) {
-                    print('\nclasses2.dex found!')
-
-                    FileOutputStream output = new FileOutputStream(new File(moduleDir.getAbsoluteFile(), "classes7.dex"))
-
-                    byte[] buffer = new byte[1024]
-                    int len = 0
-                    while ((len = inputStream.read(buffer)) > 0) {
-                        output.write(buffer, 0, len)
-                    }
-                    output.close()
-                }
-            }
-
-            for (ZipEntry e : Collections.list(file.entries())) {
-                if (e.getName().endsWith("assets/version.properties")) {
-                    var is = file.getInputStream(e)
-                    FileOutputStream output = new FileOutputStream(new File(moduleDir.getAbsoluteFile(), "version.properties"))
-
-                    byte[] buffer = new byte[1024]
-                    int len = 0
-                    while ((len = is.read(buffer)) > 0) {
-                        output.write(buffer, 0, len)
-                    }
-                    output.close()
-
-                    print('\nversion.properties found!')
-                }
-            }
+            var out = moduleDir.getAbsoluteFile().toPath();
+            file.getInputStream(file.getEntry("classes.dex")).transferTo(out.resolve("classes6.dex").toFile().newOutputStream())
+            file.getInputStream(file.getEntry("classes2.dex")).transferTo(out.resolve("classes7.dex").toFile().newOutputStream())
+            file.getInputStream(file.getEntry("assets/version.properties")).transferTo(out.resolve("version.properties").toFile().newOutputStream())
         } catch (Exception e) {
             e.printStackTrace()
         }
@@ -87,8 +34,7 @@ task exportDex {
 }
 
 android {
-    compileSdkVersion 32
-    buildToolsVersion '32.0.0'
+    compileSdk 33
 
     sourceSets {
         main {
@@ -99,7 +45,7 @@ android {
     defaultConfig {
         applicationId "ru.vtosters.lite.utils.lite"
         minSdk 22
-        targetSdkVersion 32
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
@@ -119,11 +65,11 @@ dependencies {
     implementation 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+    implementation(project(':native-effects'))
 }
 
 task prepareDexForMerge(type: Copy) {
     dependsOn('exportDex')
-    dependsOn('cargoBuild')
     into smaliFolder.toString()
     from(projectDir) {
         include 'classes6.dex'
@@ -133,14 +79,7 @@ task prepareDexForMerge(type: Copy) {
         include 'version.properties'
         into 'assets'
     }
-    from('../native-effects/target/aarch64-linux-android/release'){
-        include 'libnative_effects.so'
-        into 'lib/arm64-v8a'
-    }
-    from('../native-effects/target/armv7-linux-androideabi/release'){
-        include 'libnative_effects.so'
-        into 'lib/armeabi-v7a'
-    }
+    // TODO
     doLast {
         new File(projectDir, "classes6.dex").delete()
         new File(projectDir, "classes7.dex").delete()

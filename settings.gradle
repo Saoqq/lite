@@ -1,2 +1,3 @@
 rootProject.name = "VTosters Lite"
 include ':app'
+include ':native-effects'

@@ -1,0 +1,26 @@
+plugins{
+    id 'com.android.library'
+    id 'org.mozilla.rust-android-gradle.rust-android'
+}
+
+cargo {
+    profile = 'release'
+    module = './rust'
+    libname = 'native_effects'
+    targets = ["arm", "arm64"]
+    prebuiltToolchains = true
+    pythonCommand = "python3"
+}
+
+android {
+    namespace 'ru.vtosters.shared'
+    compileSdk 32
+    ndkVersion '25.1.8937393'
+
+    defaultConfig {
+        minSdk 22
+        targetSdkVersion 32
+        versionCode 1
+        versionName "1.0"
+    }
+}
