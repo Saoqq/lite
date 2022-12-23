@@ -18,15 +18,32 @@ task cleanVersionFile {
     projectDir.toPath().resolve("src/main/assets/version.properties").toFile().delete()
 }
 
+void copyToOut(InputStream source, OutputStream target) throws IOException {
+    byte[] buf = new byte[8192];
+    int length;
+    while ((length = source.read(buf)) != -1) {
+        target.write(buf, 0, length);
+    }
+    target.close()
+    source.close()
+}
+
 task exportDex {
     doLast {
         File moduleDir = projectDir
         try {
             ZipFile file = new ZipFile(moduleDir.getAbsolutePath() + "/build/outputs/apk/release/app-release-unsigned.apk");
             var out = moduleDir.getAbsoluteFile().toPath();
-            file.getInputStream(file.getEntry("classes.dex")).transferTo(out.resolve("classes6.dex").toFile().newOutputStream())
-            file.getInputStream(file.getEntry("classes2.dex")).transferTo(out.resolve("classes7.dex").toFile().newOutputStream())
-            file.getInputStream(file.getEntry("assets/version.properties")).transferTo(out.resolve("version.properties").toFile().newOutputStream())
+            copyToOut(file.getInputStream(file.getEntry("classes.dex")), out.resolve("classes6.dex").toFile().newOutputStream())
+            copyToOut(file.getInputStream(file.getEntry("classes2.dex")), out.resolve("classes7.dex").toFile().newOutputStream())
+            copyToOut(file.getInputStream(file.getEntry("assets/version.properties")), out.resolve("version.properties").toFile().newOutputStream())
+
+            var arm64 = out.resolve("lib/arm64-v8a/libnative_effects.so").toFile()
+            arm64.getParentFile().mkdirs()
+            copyToOut(file.getInputStream(file.getEntry("lib/arm64-v8a/libnative_effects.so")), arm64.newOutputStream())
+            var arm32 = out.resolve("lib/armeabi-v7a/libnative_effects.so").toFile()
+            arm32.getParentFile().mkdirs()
+            copyToOut(file.getInputStream(file.getEntry("lib/armeabi-v7a/libnative_effects.so")), arm32.newOutputStream())
         } catch (Exception e) {
             e.printStackTrace()
         }
@@ -34,7 +51,7 @@ task exportDex {
 }
 
 android {
-    compileSdk 33
+    compileSdk 32
 
     sourceSets {
         main {
@@ -45,7 +62,7 @@ android {
     defaultConfig {
         applicationId "ru.vtosters.lite.utils.lite"
         minSdk 22
-        targetSdkVersion 33
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
         multiDexEnabled true
@@ -65,12 +82,14 @@ dependencies {
     implementation 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
+    // TODO: pull from artifactory
     implementation(project(':native-effects'))
 }
 
 task prepareDexForMerge(type: Copy) {
     dependsOn('exportDex')
     into smaliFolder.toString()
+    var libs = projectDir.toPath().resolve("lib")
     from(projectDir) {
         include 'classes6.dex'
         include 'classes7.dex'
@@ -79,11 +98,15 @@ task prepareDexForMerge(type: Copy) {
         include 'version.properties'
         into 'assets'
     }
-    // TODO
+    from(libs) {
+        into 'lib'
+    }
+
     doLast {
         new File(projectDir, "classes6.dex").delete()
         new File(projectDir, "classes7.dex").delete()
         new File(projectDir, "version.properties").delete()
+        libs.deleteDir()
     }
 }
 
