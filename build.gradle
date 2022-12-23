@@ -28,7 +28,7 @@ allprojects {
             // github moment: https://github.com/orgs/community/discussions/26634
             // TODO: set vt org
             credentials {
-                username = "saoq"
+                username = "saoqq"
                 password = "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"
             }
         }
