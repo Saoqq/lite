@@ -82,8 +82,7 @@ dependencies {
     implementation 'net.sourceforge.streamsupport:streamsupport-minifuture:1.7.4'
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
-    // TODO: pull from artifactory
-    implementation(project(':native-effects'))
+    implementation 'ru.vtosters.lite:native-effects:1.0'
 }
 
 task prepareDexForMerge(type: Copy) {

@@ -1,9 +1,19 @@
-plugins{
+plugins {
     id 'com.android.library'
     id 'org.mozilla.rust-android-gradle.rust-android'
+    id 'maven-publish'
 }
 
-// TODO publish to github packages
+publishing {
+    publications {
+        register('gh', MavenPublication) {
+            groupId 'ru.vtosters.lite'
+            artifactId 'native-effects'
+            version '1.0'
+            artifact("$buildDir/outputs/aar/native-effects-release.aar")
+        }
+    }
+}
 
 cargo {
     profile = 'release'
@@ -15,7 +25,7 @@ cargo {
 }
 
 android {
-    namespace 'ru.vtosters.shared'
+    namespace 'ru.vtosters.native_effects'
     compileSdk 32
     ndkVersion '25.1.8937393'
 

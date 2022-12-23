@@ -20,6 +20,18 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven {
+            name = "GitHubPackages"
+            // TODO: set vt org
+            url = uri("https://maven.pkg.github.com/Saoqq/lite")
+            // TODO: try to resolve from ENV first (for CI/manual publish) and only then use hardcoded read-only
+            // github moment: https://github.com/orgs/community/discussions/26634
+            // TODO: set vt org
+            credentials {
+                username = "saoq"
+                password = "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"
+            }
+        }
     }
 }
 
