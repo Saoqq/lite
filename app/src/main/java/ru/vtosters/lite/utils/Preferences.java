@@ -18,6 +18,7 @@ import android.os.Build;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 
+import android.util.Log;
 import com.vtosters.lite.data.Users;
 import com.vtosters.lite.fragments.SettingsListFragment;
 
@@ -35,6 +36,7 @@ public class Preferences {
 
         GmsUtils.fixGapps();
         setProxy();
+        setupFilters();
         VTVerifications.load(application);
         LifecycleUtils.registerActivities(application);
     } // VK Init
@@ -58,10 +60,6 @@ public class Preferences {
         return getGlobalContext().getSharedPreferences(filename, Context.MODE_PRIVATE);
     }
 
-    public static boolean opusmodule() {
-        return getBoolValue("opusmodule", true);
-    }
-
     public static boolean systemtheme() {
         return Build.VERSION.SDK_INT >= 28 && milkshake() && (getPreferences().getString("currsystemtheme", "system").equals("system") || getPreferences().getString("currsystemtheme", "system").isEmpty());
     }
@@ -76,10 +74,6 @@ public class Preferences {
 
     public static boolean copyright_post() {
         return getBoolValue("copyright_post", false);
-    }
-
-    public static boolean default_ad_list() {
-        return getBoolValue("default_ad_list", false);
     }
 
     public static boolean shitposting() {
@@ -144,7 +138,8 @@ public class Preferences {
     }
 
     public static boolean calls() {
-        return getBoolValue("calls", false);
+//        return getBoolValue("calls", false);
+        return true;
     }
 
     public static boolean dev() {
@@ -284,21 +279,12 @@ public class Preferences {
         return getBoolValue("voice", true);
     }
 
-    public static int getMsgCount(int orig) {
-        String customvalue = getPrefsValue("msgcount");
-        return customvalue.isEmpty() ? orig : Integer.parseInt(customvalue);
-    }
-
     public static boolean vkme_notifs() {
         return getBoolValue("vkme_notifs", false);
     }
 
-    public static boolean podcastcatalog() {
-        return getBoolValue("podcastcatalog", false);
-    }
-
     public static boolean screenshotdetect() {
-        return getBoolValue("screenshotdetect", false);
+        return getBoolValue("screenshotdetect", true);
     }
 
     public static boolean checkupdates() {
@@ -314,10 +300,6 @@ public class Preferences {
         return false;
     }
 
-    public static boolean disableSettingsSumms() {
-        return getBoolValue("disableSettingsSumms", false);
-    }
-
     public static boolean hasVerification() {
         return isVerified(AccountManagerUtils.getUserId());
     }
@@ -331,20 +313,14 @@ public class Preferences {
     }
 
     public static long getSizeForDelete() {
-        switch (getPrefsValue("clearcache")) {
-            case "100mb":
-                return 104857600L;
-            case "500mb":
-                return 524288000L;
-            case "1gb":
-                return 1073741824L;
-            case "2gb":
-                return 2147483648L;
-            case "5gb":
-                return 5368709120L;
-            default:
-                return MAX_VALUE;
-        }
+        return switch (getPrefsValue("clearcache")) {
+            case "100mb" -> 104857600L;
+            case "500mb" -> 524288000L;
+            case "1gb" -> 1073741824L;
+            case "2gb" -> 2147483648L;
+            case "5gb" -> 5368709120L;
+            default -> MAX_VALUE;
+        };
     }
 
     public static int compress(int origquality) {

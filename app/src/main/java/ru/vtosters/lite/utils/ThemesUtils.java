@@ -6,6 +6,7 @@ import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.Log;
@@ -29,6 +30,7 @@ import com.vtosters.lite.data.ThemeTracker;
 import ru.vtosters.lite.deviceinfo.OEMDetector;
 import ru.vtosters.lite.hooks.VKUIHook;
 import ru.vtosters.lite.themes.ThemesHacks;
+import ru.vtosters.lite.themes.ThemesManager;
 import ru.vtosters.lite.ui.wallpapers.WallpapersHooks;
 
 import java.lang.reflect.Field;
@@ -38,17 +40,16 @@ import static ru.vtosters.lite.utils.Preferences.*;
 
 public class ThemesUtils {
     public static void applyTheme(VKTheme theme) {
-        var currentActivity = LifecycleUtils.getCurrentActivity();
-        if (currentActivity != null) {
-            try {
-                VKThemeHelper.theme(theme, currentActivity, getCenterScreenCoords());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        } else {
-            Log.d("ThemesUtils", "Null activity lol");
+        try {
+            VKThemeHelper.theme(theme, LifecycleUtils.getCurrentActivity(), getCenterScreenCoords());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     } // Apply VKTheme and ImTheme (hard applying without dynamic theme changing)
+
+    public static boolean isCustomAccentEnabled() {
+        return ThemesUtils.isMonetTheme() || ThemesManager.hasTmpArchive();
+    }
 
     public static ColorStateList getAccenedColorStateList() {
         return ColorStateList.valueOf(getAccentColor());
@@ -65,8 +66,6 @@ public class ThemesUtils {
     public static void setTheme(VKTheme theme, Activity activity) {
         if (activity == null) {
             activity = LifecycleUtils.getCurrentActivity();
-
-            if (activity == null) return;
         }
         VKThemeHelper.theme(theme, activity, getCenterScreenCoords());
         ThemeTracker.a();
@@ -78,8 +77,6 @@ public class ThemesUtils {
     public static void setThemeFL(VKTheme theme, Activity activity, float[] fl) {
         if (activity == null) {
             activity = LifecycleUtils.getCurrentActivity();
-
-            if (activity == null) return;
         }
         VKThemeHelper.theme(theme, activity, fl);
         ThemeTracker.a();
@@ -101,8 +98,7 @@ public class ThemesUtils {
     }
 
     public static int getAccentColor() {
-        var accent = AndroidUtils.getPreferences().getInt("accent_color", getColorFromAttr(R.attr.accent));
-        return (accent == 0 || isMonetTheme()) ? getColorFromAttr(R.attr.accent) : accent;
+        return getColorFromAttr(R.attr.accent);
     } // Color accent
 
     public static int getMutedAccentColor() {
@@ -115,7 +111,7 @@ public class ThemesUtils {
             view.setHighlightColor(ThemesUtils.getMutedAccentColor());
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                view.getTextCursorDrawable().setColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN);
+                view.getTextCursorDrawable().setColorFilter(new PorterDuffColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN));
             } else if (!OEMDetector.isMIUI()) {
                 Field field = TextView.class.getDeclaredField("mCursorDrawableRes");
                 field.setAccessible(true);
@@ -139,16 +135,18 @@ public class ThemesUtils {
                     field.set(editor, drawables);
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.e("ThemesUtils", "setCursorColor: ", e);
         }
     }
     @SuppressLint("DiscouragedPrivateApi")
     public static void colorHandles(TextView view) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                view.getTextSelectHandle().setColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN);
-                view.getTextSelectHandleRight().setColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN);
-                view.getTextSelectHandleLeft().setColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN);
+                PorterDuffColorFilter filter = new PorterDuffColorFilter(ThemesUtils.getAccentColor(), PorterDuff.Mode.SRC_IN);
+                view.getTextSelectHandle().setColorFilter(filter);
+                view.getTextSelectHandleRight().setColorFilter(filter);
+                view.getTextSelectHandleLeft().setColorFilter(filter);
             } else if (!OEMDetector.isMIUI()) {
                 Field editorField = TextView.class.getDeclaredField("mEditor");
 
@@ -189,12 +187,13 @@ public class ThemesUtils {
                     }
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Log.e("ThemesUtils", "colorHandles: ", e);
         }
     }
 
     public static int getMutedColor(int color) {
-        return ColorUtils.blendARGB(color, (isDarkTheme() ? Color.BLACK : Color.WHITE), 0.5f);
+        return ColorUtils.blendARGB(color, (isDarkTheme() ? Color.BLACK : Color.WHITE), (isMilkshake() ? 0.5f : isDarkTheme() ? 0.32f : 0.1f));
     }
 
     public static void setCustomAccentColor(int newColor, boolean async) {
@@ -239,12 +238,20 @@ public class ThemesUtils {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? isDarkTheme() ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0 : 0;
     }
 
+    public static int getStockAccent() {
+        if (isMilkshake()) {
+            return isDarkTheme() ? Color.parseColor("#71aaeb") : Color.parseColor("#3f8ae0");
+        } else {
+            return isDarkTheme() ? Color.parseColor("#71aaeb") : Color.parseColor("#528bcc");
+        }
+    }
+
     public static int getDarkThemeRes() {
         if (isMonetTheme()) {
             if (isAmoledTheme()) {
-                return isMilkshake() ? getIdentifier("VkMilkAmoledMonetStyle", "style"): getIdentifier("VkAmoledMonetStyle", "style");
+                return getIdentifier(isMilkshake() ? "VkMilkAmoledMonetStyle" : "VkAmoledMonetStyle", "style");
             } else {
-                return isMilkshake() ? getIdentifier("VkMilkDarkMonetStyle", "style"): getIdentifier("VkDarkMonetStyle", "style");
+                return getIdentifier(isMilkshake() ? "VkMilkDarkMonetStyle" : "VkDarkMonetStyle", "style");
             }
         } else {
             if (isAmoledTheme()) {
@@ -257,7 +264,7 @@ public class ThemesUtils {
 
     public static int getLightThemeRes() {
         if (isMonetTheme()) {
-            return isMilkshake() ? getIdentifier("VkMilkLightMonetStyle", "style"): getIdentifier("VkLightMonetStyle", "style");
+            return getIdentifier(isMilkshake() ? "VkMilkLightMonetStyle" : "VkLightMonetStyle", "style");
         } else {
             return isMilkshake() ? R.style.VkMilkLightStyle : R.style.VkLightStyle;
         }
@@ -293,6 +300,7 @@ public class ThemesUtils {
     } // Recolor drawable to accent color
 
     public static Drawable recolorToolbarDrawable(Drawable drawable) {
+        if (!ThemesUtils.isCustomAccentEnabled()) return drawable;
         if (drawable == null) return null;
         return new RecoloredDrawable(drawable, (ThemesUtils.isMilkshake() && !ThemesUtils.isDarkTheme()) ? ThemesUtils.getAccentColor() : ThemesUtils.getHeaderText());
     }
@@ -314,7 +322,7 @@ public class ThemesUtils {
     }
 
     public static int fixSeparator(float f) {
-        if (f == 8.0f && isMonetTheme()) {
+        if (isMonetTheme()) {
             return 0;
         } else {
             return (int) Math.floor(f * Resources.getSystem().getDisplayMetrics().density);
@@ -326,13 +334,6 @@ public class ThemesUtils {
         int green = (int) ((Color.green(color) * (1 - factor) / 255 + factor) * 255);
         int blue = (int) ((Color.blue(color) * (1 - factor) / 255 + factor) * 255);
         return Color.argb(Color.alpha(color), red, green, blue);
-    }
-
-    public static int fixTextColor(int resid) {
-        if (resid == R.color.music_action_button_gray || resid == R.color.cool_grey || resid == R.color.accent_blue) {
-            return isDarkTheme() ? R.color.white : R.color.cool_grey;
-        }
-        return resid;
     }
 
     public static int halfAlpha(int src) {
@@ -348,10 +349,7 @@ public class ThemesUtils {
     }
 
     public static String getBackgroundStickers() {
-        if (WallpapersHooks.getWallpaper() != null) {
-            return "images_with_background";
-        }
-        return "images";
+        return WallpapersHooks.hasWallpapers() ? "images_with_background" : "images";
     }
 
     public static VKTheme getCurrentTheme() {
@@ -383,6 +381,18 @@ public class ThemesUtils {
         if (navbar()) {
             window.setNavigationBarColor(getTabbarBackground());
             window.getDecorView().setSystemUiVisibility(getNeededColorNavbar());
+        }
+    }
+
+    public static void setStatusBarColor(Window window) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (isDarkTheme()) {
+                View view = window.getDecorView();
+                view.setSystemUiVisibility(view.getSystemUiVisibility() & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            } else {
+                View view = window.getDecorView();
+                view.setSystemUiVisibility(view.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            }
         }
     }
 

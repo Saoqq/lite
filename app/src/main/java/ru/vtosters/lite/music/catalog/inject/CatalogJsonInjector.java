@@ -1,37 +1,32 @@
 package ru.vtosters.lite.music.catalog.inject;
 
-import static ru.vtosters.lite.hooks.DateHook.getLocale;
-import static ru.vtosters.lite.music.cache.helpers.PlaylistHelper.getCatalogHeader;
-import static ru.vtosters.lite.music.cache.helpers.PlaylistHelper.getCatalogPlaylist;
-import static ru.vtosters.lite.music.cache.helpers.PlaylistHelper.getCatalogSeparator;
-import static ru.vtosters.lite.music.cache.helpers.PlaylistHelper.getPlaylist;
-import static ru.vtosters.lite.proxy.ProxyUtils.getApi;
-import static ru.vtosters.lite.utils.AccountManagerUtils.getUserId;
-import static ru.vtosters.lite.utils.Preferences.dev;
-import static ru.vtosters.lite.utils.Preferences.getBoolValue;
-
 import android.util.Log;
-
+import bruhcollective.itaysonlab.libvkx.client.LibVKXClient;
 import com.vk.core.network.Network;
 import com.vk.core.util.DeviceIdProvider;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-
-import bruhcollective.itaysonlab.libvkx.client.LibVKXClient;
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import ru.vtosters.lite.di.singleton.VtOkHttpClient;
 import ru.vtosters.lite.music.cache.CacheDatabaseDelegate;
 import ru.vtosters.lite.utils.AccountManagerUtils;
 import ru.vtosters.lite.utils.AndroidUtils;
 
+import java.io.IOException;
+
+import static ru.vtosters.lite.hooks.DateHook.getLocale;
+import static ru.vtosters.lite.music.cache.helpers.PlaylistHelper.*;
+import static ru.vtosters.lite.proxy.ProxyUtils.getApi;
+import static ru.vtosters.lite.utils.AccountManagerUtils.getUserId;
+import static ru.vtosters.lite.utils.Preferences.dev;
+import static ru.vtosters.lite.utils.Preferences.getBoolValue;
+
 public class CatalogJsonInjector {
     private static final OkHttpClient mClient = VtOkHttpClient.getInstance();
+    private static boolean isLoaded;
 
     public static JSONObject music(JSONObject json) throws JSONException {
         var catalog = json.optJSONObject("catalog");
@@ -45,7 +40,7 @@ public class CatalogJsonInjector {
         var useOldAppVer = getBoolValue("useOldAppVer", false);
         var isUsersCatalog = oldItems.optJSONObject(0).optString("url").equals("https://vk.com/audios" + getUserId() + "?section=" + (useOldAppVer ? "all" : "general"));
 
-        if (oldItems != null && isUsersCatalog) {
+        if (isUsersCatalog) {
             var blocks = oldItems.optJSONObject(0).optJSONArray("blocks");
 
             if (!useOldAppVer) {
@@ -83,19 +78,6 @@ public class CatalogJsonInjector {
                 var albums = fetchCatalogId("https://vk.com/audio?section=albums");
                 if (albums != null) {
                     var catalogarr = albums.optJSONObject("catalog").optJSONArray("sections").optJSONObject(0);
-
-                    var title = catalogarr.optString("title");
-                    var id = catalogarr.optString("id");
-                    var url = catalogarr.optString("url");
-
-                    if (dev()) Log.d("VKMusic", "Added " + title + " in music sections");
-
-                    oldItems.put(new JSONObject().put("id", id).put("title", title).put("url", url));
-                }
-
-                var recent = fetchCatalogId("https://vk.com/audio?section=recent");
-                if (recent != null) {
-                    var catalogarr = recent.optJSONObject("catalog").optJSONArray("sections").optJSONObject(0);
 
                     var title = catalogarr.optString("title");
                     var id = catalogarr.optString("id");
@@ -145,6 +127,8 @@ public class CatalogJsonInjector {
                             .put(getCatalogPlaylist())
                             .put(getCatalogSeparator());
 
+                    isLoaded = false;
+
                     Log.d("VKMusic", "added cache catalog playlist");
 
                     for (int i = 0; i < blocks.length(); i++) {
@@ -183,13 +167,15 @@ public class CatalogJsonInjector {
                     }
                 }
 
-                if (!useOldAppVer || noPlaylists) {
+                if ((!useOldAppVer || noPlaylists) && !isLoaded) {
                     var newBlocks = new JSONArray();
 
                     newBlocks
                             .put(getCatalogHeader())
                             .put(getCatalogPlaylist())
                             .put(getCatalogSeparator());
+
+                    isLoaded = true;
 
                     Log.d("catalogInjector", "added cache catalog playlist");
 
@@ -240,29 +226,46 @@ public class CatalogJsonInjector {
             }
         }
 
-        var section = json.optJSONObject("section");
-        if (section != null) {
-            var blocks = section.optJSONArray("blocks");
-            if (blocks != null) {
-                for (int i = 0; i < blocks.length(); i++) {
-                    var block = blocks.optJSONObject(i);
-                    var layout = block.optJSONObject("layout");
-                    if (layout != null) {
-                        var name = layout.optString("name");
-                        if (name.equals("header_extended")) {
-                            if (layout.has("top_title")) blocks.remove(i);
-                            try {
-                                layout.put("name", "header");
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
+        try {
+            fixHeaders(json.getJSONObject("section"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return catalogInjector(json);
+    }
+
+    public static JSONObject fixArtists(JSONObject json) {
+
+        try {
+            fixHeaders(json.getJSONObject("catalog").getJSONArray("sections").getJSONObject(0));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return json;
+    }
+
+    public static void fixHeaders(JSONObject json) {
+        var blocks = json.optJSONArray("blocks");
+
+        if (blocks != null) {
+            for (int i = 0; i < blocks.length(); i++) {
+                var block = blocks.optJSONObject(i);
+                var layout = block.optJSONObject("layout");
+                if (layout != null) {
+                    var name = layout.optString("name");
+                    if (name.equals("header_extended")) {
+                        if (layout.has("top_title")) blocks.remove(i);
+                        try {
+                            layout.put("name", "header");
+                        } catch (JSONException e) {
+                            e.printStackTrace();
                         }
                     }
                 }
             }
         }
-
-        return catalogInjector(json);
     }
 
     private static JSONObject fetchCatalogId(String section) {

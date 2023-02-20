@@ -1,24 +1,16 @@
 package ru.vtosters.lite.ui.wallpapers;
 
-import static ru.vtosters.lite.ui.wallpapers.WallpapersHooks.getWallpaperFile;
-import static ru.vtosters.lite.ui.wallpapers.WallpapersHooks.removeWallpaper;
-import static ru.vtosters.lite.ui.wallpapers.WallpapersHooks.requestUpdateWallpaper;
-import static ru.vtosters.lite.utils.AndroidUtils.edit;
-import static ru.vtosters.lite.utils.Preferences.getBoolValue;
-import static ru.vtosters.lite.utils.Preferences.hasVerification;
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
-
 import com.vtosters.lite.R;
 import com.vtosters.lite.general.fragments.MaterialPreferenceToolbarFragment;
 import com.vtosters.lite.im.ImEngineProvider;
+import ru.vtosters.lite.ui.PreferenceFragmentUtils;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -26,7 +18,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import ru.vtosters.lite.ui.PreferencesUtil;
+import static ru.vtosters.lite.ui.wallpapers.WallpapersHooks.*;
+import static ru.vtosters.lite.utils.AndroidUtils.edit;
+import static ru.vtosters.lite.utils.Preferences.getBoolValue;
+import static ru.vtosters.lite.utils.Preferences.hasVerification;
 
 public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
 
@@ -50,8 +45,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
 
         addPreferencesFromResource(R.xml.empty);
 
-        PreferencesUtil.addPreferenceCategory(
-                this,
+        PreferenceFragmentUtils.addPreferenceCategory(
+                getPreferenceScreen(),
                 requireContext().getString(R.string.vkim_settings_appearance_chat_preview_title)
         );
 
@@ -60,8 +55,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
         mWPPreviewPref.setIconSpaceReserved(false);
         getPreferenceScreen().addPreference(mWPPreviewPref);
 
-        PreferencesUtil.addPreference(
-                this,
+        PreferenceFragmentUtils.addPreference(
+                getPreferenceScreen(),
                 "wp_set",
                 requireContext().getString(R.string.wallpaper_select),
                 requireContext().getString(R.string.wallpaper_from_gallery),
@@ -78,8 +73,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
                     return true;
                 });
 
-        PreferencesUtil.addPreference(
-                this,
+        PreferenceFragmentUtils.addPreference(
+                getPreferenceScreen(),
                 "wp_clear",
                 requireContext().getString(R.string.wallpaper_remove),
                 "",
@@ -92,18 +87,18 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
                     return true;
                 });
 
-        PreferencesUtil.addPreferenceCategory(this, requireContext().getString(R.string.vtlfilters));
+        PreferenceFragmentUtils.addPreferenceCategory(getPreferenceScreen(), requireContext().getString(R.string.vtlfilters));
 
         if (!hasVerification() && !getBoolValue("dialogrecomm", false)) {
-            PreferencesUtil.addPreference(
-                    this,
+            PreferenceFragmentUtils.addPreference(
+                    getPreferenceScreen(),
                     "",
                     requireContext().getString(R.string.filters_warning),
                     requireContext().getString(R.string.icons_warning_info),
                     0,
                     preference -> {
                         requireContext().startActivity(
-                                new Intent("android.intent.action.VIEW")
+                                new Intent(Intent.ACTION_VIEW)
                                         .setData(Uri.parse("https://vtosters.app/donate/"))
                         );
                         return false;
@@ -114,8 +109,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
                 .filter(imageEffects -> imageEffects.isFree() || hasVerification())
                 .forEach(it -> {
                     if (it.isList()) {
-                        var pref = PreferencesUtil.addListPreference(
-                                this,
+                        var pref = PreferenceFragmentUtils.addListPreference(
+                                getPreferenceScreen(),
                                 it.toString(),
                                 "disabled",
                                 it.getTitle(),
@@ -131,8 +126,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
                             return true;
                         });
                     } else if (it.isSwitch()) {
-                        PreferencesUtil.addMaterialSwitchPreference(
-                                this,
+                        PreferenceFragmentUtils.addMaterialSwitchPreference(
+                                getPreferenceScreen(),
                                 it.toString(),
                                 it.getTitle(),
                                 it.getSummary(),
@@ -147,8 +142,8 @@ public class WallpaperMenuFragment extends MaterialPreferenceToolbarFragment {
                     }
                 });
 
-        PreferencesUtil.addMaterialSwitchPreference(
-                this,
+        PreferenceFragmentUtils.addMaterialSwitchPreference(
+                getPreferenceScreen(),
                 "compresswp",
                 requireContext().getString(R.string.compress_wallpaper_title),
                 requireContext().getString(R.string.compress_wallpaper_summ),

@@ -1,23 +1,7 @@
 package ru.vtosters.lite.ui.fragments;
 
-import static bruhcollective.itaysonlab.libvkx.client.LibVKXClient.isVkxInstalled;
-import static ru.vtosters.lite.music.LastFMScrobbler.isLoggedIn;
-import static ru.vtosters.lite.proxy.ProxyUtils.getApi;
-import static ru.vtosters.lite.utils.AccountManagerUtils.getUserToken;
-import static ru.vtosters.lite.utils.AndroidUtils.dp2px;
-import static ru.vtosters.lite.utils.AndroidUtils.edit;
-import static ru.vtosters.lite.utils.AndroidUtils.getPreferences;
-import static ru.vtosters.lite.utils.AndroidUtils.sendToast;
-import static ru.vtosters.lite.utils.LifecycleUtils.restartApplicationWithTimer;
-import static ru.vtosters.lite.utils.Preferences.getBoolValue;
-import static ru.vtosters.lite.utils.Preferences.isEnableExternalOpening;
-import static ru.vtosters.lite.utils.ThemesUtils.getAccentColor;
-import static ru.vtosters.lite.utils.ThemesUtils.getSTextAttr;
-import static ru.vtosters.lite.utils.ThemesUtils.getTextAttr;
-
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -25,25 +9,16 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-
 import androidx.preference.Preference;
-
+import bruhcollective.itaysonlab.libvkx.client.LibVKXClient;
 import com.vk.core.dialogs.alert.VkAlertDialog;
 import com.vk.core.network.Network;
 import com.vtosters.lite.R;
 import com.vtosters.lite.general.fragments.MaterialPreferenceToolbarFragment;
-
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import bruhcollective.itaysonlab.libvkx.client.LibVKXClient;
 import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import org.json.JSONObject;
 import ru.vtosters.lite.downloaders.AudioDownloader;
 import ru.vtosters.lite.downloaders.VideoDownloader;
 import ru.vtosters.lite.music.LastFMScrobbler;
@@ -51,6 +26,22 @@ import ru.vtosters.lite.music.cache.CacheDatabaseDelegate;
 import ru.vtosters.lite.ui.adapters.ImagineArrayAdapter;
 import ru.vtosters.lite.utils.AndroidUtils;
 import ru.vtosters.lite.utils.ThemesUtils;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static bruhcollective.itaysonlab.libvkx.client.LibVKXClient.isVkxInstalled;
+import static ru.vtosters.lite.music.LastFMScrobbler.isLoggedIn;
+import static ru.vtosters.lite.proxy.ProxyUtils.getApi;
+import static ru.vtosters.lite.utils.AccountManagerUtils.getUserToken;
+import static ru.vtosters.lite.utils.AndroidUtils.*;
+import static ru.vtosters.lite.utils.LifecycleUtils.restartApplicationWithTimer;
+import static ru.vtosters.lite.utils.Preferences.getBoolValue;
+import static ru.vtosters.lite.utils.Preferences.isEnableExternalOpening;
+import static ru.vtosters.lite.utils.ThemesUtils.getSTextAttr;
+import static ru.vtosters.lite.utils.ThemesUtils.getTextAttr;
 
 public class MediaFragment extends MaterialPreferenceToolbarFragment {
     private static final ExecutorService executor = Executors.newCachedThreadPool();
@@ -100,12 +91,15 @@ public class MediaFragment extends MaterialPreferenceToolbarFragment {
     }
 
     private void prefs() {
-        findPreference("download_video").setOnPreferenceClickListener(new MediaFragment.download());
+        findPreference("download_video").setOnPreferenceClickListener(preference -> {
+            download(requireContext());
+
+            return true;
+        });
         findPreference("clearvideohistory").setOnPreferenceClickListener(preference -> {
             deleteVideoHistoryDialog(requireContext());
             return true;
         });
-        findPreference("dateformat").setOnPreferenceChangeListener(new MediaFragment.restart());
         findPreference("lastfm_auth").setOnPreferenceClickListener(preference -> {
             if (isLoggedIn()) {
                 logout(getContext());
@@ -148,12 +142,16 @@ public class MediaFragment extends MaterialPreferenceToolbarFragment {
 
         findPreference("select_photo_search_engine").setOnPreferenceClickListener(preference -> {
             var items = Arrays.asList(
+                    new ImagineArrayAdapter.ImagineArrayAdapterItem(null, AndroidUtils.getString("by_choice")),
                     new ImagineArrayAdapter.ImagineArrayAdapterItem(R.drawable.yandex, "Yandex"),
                     new ImagineArrayAdapter.ImagineArrayAdapterItem(R.drawable.google, "Google"),
-                    new ImagineArrayAdapter.ImagineArrayAdapterItem(R.drawable.microsoft, "Bing")
-            );
+                    new ImagineArrayAdapter.ImagineArrayAdapterItem(R.drawable.microsoft, "Bing"),
+                    new ImagineArrayAdapter.ImagineArrayAdapterItem(null, "TraceMoe"),
+                    new ImagineArrayAdapter.ImagineArrayAdapterItem(null, "Ascii2d"),
+                    new ImagineArrayAdapter.ImagineArrayAdapterItem(null, "Saucenao")
+                    );
 
-            var adapter = new ImagineArrayAdapter(getContext(), items);
+            var adapter = new ImagineArrayAdapter(requireContext(), items);
             adapter.setSelected(getPreferences().getInt("search_engine", 0));
 
             new VkAlertDialog.Builder(getActivity())
@@ -289,22 +287,5 @@ public class MediaFragment extends MaterialPreferenceToolbarFragment {
     @Override
     public int T4() {
         return R.string.vtlmedia;
-    }
-
-    private static class restart implements Preference.OnPreferenceChangeListener {
-        @Override
-        public boolean onPreferenceChange(Preference preference, Object o) {
-            edit().putString("dateformat", o.toString()).commit();
-            restartApplicationWithTimer();
-            return false;
-        }
-    }
-
-    private class download implements Preference.OnPreferenceClickListener {
-        @Override // android.support.v7.preference.Preference.c
-        public boolean onPreferenceClick(Preference preference) {
-            download(getActivity());
-            return true;
-        }
     }
 }

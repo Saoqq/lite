@@ -1,15 +1,10 @@
 package ru.vtosters.lite.ui.components;
 
-import static ru.vtosters.lite.utils.AndroidUtils.edit;
-import static ru.vtosters.lite.utils.AndroidUtils.getGlobalContext;
-import static ru.vtosters.lite.utils.AndroidUtils.getPackageName;
-import static ru.vtosters.lite.utils.AndroidUtils.getPreferences;
-import static ru.vtosters.lite.utils.Preferences.hasVerification;
-import static ru.vtosters.lite.utils.Preferences.isValidSignature;
-
 import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import ru.vtosters.lite.utils.AndroidUtils;
+import ru.vtosters.lite.utils.Preferences;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,33 +39,24 @@ public class IconManager {
     );
 
     public static List<String> icons() {
-        return hasVerification() && isValidSignature() ? sIconsPlusNames : sIconsNames; // delete later sdk check
+        return Preferences.hasVerification() && Preferences.isValidSignature() ? sIconsPlusNames : sIconsNames; // delete later sdk check
     }
 
     public static List<String> iconsValues() {
-        return hasVerification() && isValidSignature() ? sIconsPlus : sIcons; // delete later sdk check
+        return Preferences.hasVerification() && Preferences.isValidSignature() ? sIconsPlus : sIcons; // delete later sdk check
     }
 
-    public static void switchComponent(String icon, String appName, String oldIcon, String oldAppName) {
+    public static void switchComponent(String icon, String appName) {
 
         // def value for standard icon
         var iconIndex = 1;
         // def value for standard label
         var labelIndex = 1;
 
-        var oldIconIndex = -1;
-
-        var oldLabelIndex = -1;
-
         Log.d("IconManager", "iconSwitcher: icon = " + icon + ", appname = " + appName);
 
-        List<String> iconsList = (hasVerification() && isValidSignature()) ? sIconsPlus : sIcons;
+        List<String> iconsList = (Preferences.hasVerification() && Preferences.isValidSignature()) ? sIconsPlus : sIcons;
         List<String> labelsList = sLabels;
-
-        if (oldIcon != null && oldAppName != null) {
-            oldIconIndex = iconsList.indexOf(oldIcon);
-            oldLabelIndex = labelsList.indexOf(oldAppName);
-        }
 
         // check if icon is exist
         if (iconsList.contains(icon))
@@ -82,13 +68,18 @@ public class IconManager {
             // get labels index
             labelIndex = labelsList.indexOf(appName);
 
-        String currentState = getPreferences().getString("components_enabled", "11");
+        String currentState = "11";
 
-        if (oldIconIndex != -1 && oldLabelIndex != -1) {
-            currentState = oldIconIndex + "" + oldLabelIndex;
+        main: for (int i = 0; i < iconsList.size(); i++) {
+            for (int o = 0; o < labelsList.size(); o++) {
+                if (isComponentEnabled("id" + i + o)) {
+                    currentState = i + String.valueOf(o);
+                    break main;
+                }
+            }
         }
 
-        String newState = iconIndex + "" + labelIndex;
+        String newState = iconIndex + String.valueOf(labelIndex);
 
         // check if current component is equal to custom value or if custom value is not exist
         if (currentState.equals(newState))
@@ -96,17 +87,19 @@ public class IconManager {
 
         // disable current component to prevent conflict with custom value
         switchIcon("id" + currentState, false);
-        // save custom value
-        edit().putString("components_enabled", newState).commit();
         // enable custom value
         switchIcon("id" + newState, true);
     }
 
     // Component switcher for changing app icon
     public static void switchIcon(String componentName, Boolean enabled) {
-        getGlobalContext().getPackageManager().setComponentEnabledSetting(
-                new ComponentName(getPackageName(), getPackageName() + "." + componentName),
+        AndroidUtils.getGlobalContext().getPackageManager().setComponentEnabledSetting(
+                new ComponentName(AndroidUtils.getPackageName(), AndroidUtils.getPackageName() + "." + componentName),
                 enabled ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                 PackageManager.DONT_KILL_APP);
+    }
+
+    public static boolean isComponentEnabled(String componentName) {
+        return AndroidUtils.getGlobalContext().getPackageManager().getComponentEnabledSetting(new ComponentName(AndroidUtils.getPackageName(), AndroidUtils.getPackageName() + "." + componentName)) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
     }
 }

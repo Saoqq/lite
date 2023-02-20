@@ -70,8 +70,8 @@ android {
 
     compileOptions {
         coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_14
+        targetCompatibility JavaVersion.VERSION_14
     }
     namespace 'ru.vtosters.lite'
 }
@@ -82,6 +82,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.aar'])
     compileOnly fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'ru.vtosters.lite:native-effects:1.0'
+    implementation 'com.google.guava:guava:23.3-android'
 }
 
 task prepareDexForMerge(type: Copy) {
@@ -96,6 +97,7 @@ task prepareDexForMerge(type: Copy) {
         include 'version.properties'
         into 'assets'
     }
+    // Remove comment for native lib build
     from(libs) {
         into 'lib'
     }
@@ -127,6 +129,22 @@ task buildAndInstallVTL(type: Exec) {
     } else {
         commandLine 'adb', 'install', 'VTLite.apk'
     }
+}
+
+task buildAndLaunchVTL(type: Exec) {
+    dependsOn('buildAndInstallVTL')
+    if (Os.isFamily("unix") || Os.isFamily("mac"))
+        commandLine 'bash', '-c', 'adb shell monkey -p com.vtosters.lite -c android.intent.category.LAUNCHER 1'
+    else
+        commandLine 'adb', 'shell', 'monkey', '-p', 'com.vtosters.lite', '-c', 'android.intent.category.LAUNCHER', '1'
+}
+
+task generateRjava(type: Exec) {
+    workingDir(projectDir.parentFile)
+    if (Os.isFamily("unix") || Os.isFamily("mac"))
+        commandLine "bash", "-c", "./scripts/rclass_regenerator.sh"
+    else
+        commandLine "cmd", "/C", ".\\scripts\\rclass_regenerator.sh"
 }
 
 exportDex.dependsOn('assembleRelease')

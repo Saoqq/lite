@@ -1,18 +1,16 @@
 package ru.vtosters.lite.ui.components;
 
-import static ru.vtosters.lite.utils.AndroidUtils.getPreferences;
-
 import android.os.Build;
-
 import com.vtosters.lite.R;
+import ru.vtosters.lite.ui.items.SuperAppItem;
+import ru.vtosters.lite.utils.AndroidUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ru.vtosters.lite.ui.items.SuperAppItem;
-import ru.vtosters.lite.utils.AndroidUtils;
+import static ru.vtosters.lite.utils.AndroidUtils.getPreferences;
 
 public class SuperAppEditorManager {
 
@@ -43,13 +41,9 @@ public class SuperAppEditorManager {
             mSelectedItems.add(getItemByTag(tag));
             allTags.remove(tag);
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            allTags.forEach(tag -> mDisabledItems.add(getItemByTag(tag)));
-        } else {
-            for (String tag : allTags) {
-                mDisabledItems.add(getItemByTag(tag));
-            }
-        }
+
+        for (String tag : allTags)
+            mDisabledItems.add(getItemByTag(tag));
     }
 
     public void save() {
@@ -87,37 +81,22 @@ public class SuperAppEditorManager {
     }
 
     private SuperAppItem getItemByTag(String tag) {
-        switch (tag) {
-            case "menu":
-                return SuperAppItem.valuesOf("menu", AndroidUtils.getString(R.string.superapp_menu));
-            case "miniapps":
-                return SuperAppItem.valuesOf("miniapps", AndroidUtils.getString(R.string.superapp_miniapps));
-            case "vkpay_slim":
-                return SuperAppItem.valuesOf("vkpay_slim", AndroidUtils.getString(R.string.superapp_vkpay));
-            case "greeting":
-                return SuperAppItem.valuesOf("greeting", AndroidUtils.getString(R.string.superapp_greeting));
-            case "promo":
-                return SuperAppItem.valuesOf("promo", AndroidUtils.getString(R.string.superapp_miniapps_promo));
-            case "holiday":
-                return SuperAppItem.valuesOf("holiday", AndroidUtils.getString(R.string.superapp_holiday));
-            case "weather":
-                return SuperAppItem.valuesOf("weather", AndroidUtils.getString(R.string.superapp_weather));
-            case "sport":
-                return SuperAppItem.valuesOf("sport", AndroidUtils.getString(R.string.superapp_sport));
-            case "games":
-                return SuperAppItem.valuesOf("games", AndroidUtils.getString(R.string.superapp_games));
-            case "informer":
-                return SuperAppItem.valuesOf("informer", AndroidUtils.getString(R.string.superapp_informer));
-            case "food":
-                return SuperAppItem.valuesOf("food", AndroidUtils.getString(R.string.superapp_food));
-            case "event":
-                return SuperAppItem.valuesOf("event", AndroidUtils.getString(R.string.superapp_event));
-            case "music":
-                return SuperAppItem.valuesOf("music", AndroidUtils.getString(R.string.superapp_music));
-            case "vk_run":
-                return SuperAppItem.valuesOf("vk_run", AndroidUtils.getString(R.string.superapp_vk_run));
-            default:
-                return null;
-        }
+        return switch (tag) {
+            case "menu" -> SuperAppItem.valuesOf("menu", AndroidUtils.getString(R.string.superapp_menu));
+            case "miniapps" -> SuperAppItem.valuesOf("miniapps", AndroidUtils.getString(R.string.superapp_miniapps));
+            case "vkpay_slim" -> SuperAppItem.valuesOf("vkpay_slim", AndroidUtils.getString(R.string.superapp_vkpay));
+            case "greeting" -> SuperAppItem.valuesOf("greeting", AndroidUtils.getString(R.string.superapp_greeting));
+            case "promo" -> SuperAppItem.valuesOf("promo", AndroidUtils.getString(R.string.superapp_miniapps_promo));
+            case "holiday" -> SuperAppItem.valuesOf("holiday", AndroidUtils.getString(R.string.superapp_holiday));
+            case "weather" -> SuperAppItem.valuesOf("weather", AndroidUtils.getString(R.string.superapp_weather));
+            case "sport" -> SuperAppItem.valuesOf("sport", AndroidUtils.getString(R.string.superapp_sport));
+            case "games" -> SuperAppItem.valuesOf("games", AndroidUtils.getString(R.string.superapp_games));
+            case "informer" -> SuperAppItem.valuesOf("informer", AndroidUtils.getString(R.string.superapp_informer));
+            case "food" -> SuperAppItem.valuesOf("food", AndroidUtils.getString(R.string.superapp_food));
+            case "event" -> SuperAppItem.valuesOf("event", AndroidUtils.getString(R.string.superapp_event));
+            case "music" -> SuperAppItem.valuesOf("music", AndroidUtils.getString(R.string.superapp_music));
+            case "vk_run" -> SuperAppItem.valuesOf("vk_run", AndroidUtils.getString(R.string.superapp_vk_run));
+            default -> null;
+        };
     }
 }

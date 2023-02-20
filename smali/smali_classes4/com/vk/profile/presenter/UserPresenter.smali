@@ -143,8 +143,6 @@
 
     move-result-object v0
 
-    invoke-static {v0}, Lru/vtosters/lite/utils/ProfileHider;->injectMap(Ljava/util/HashMap;)V
-
     sput-object v0, Lcom/vk/profile/presenter/UserPresenter;->p0:Ljava/util/HashMap;
 
     return-void
@@ -954,9 +952,11 @@
 .method public final b(Landroid/view/View;Lcom/vtosters/lite/api/ExtendedUserProfile;)V
     .locals 8
 
-    const-string p0, "Звонки не поддерживаются в данном клиенте"
+    #const-string p0, "Звонки не поддерживаются в данном клиенте"
 
-    invoke-static {p0}, Lcom/vk/core/util/ToastUtils;->a(Ljava/lang/CharSequence;)V
+    #invoke-static {p0}, Lcom/vk/core/util/ToastUtils;->a(Ljava/lang/CharSequence;)V
+
+    invoke-static {p1, p2}, Lru/vtosters/lite/hooks/CallsHook;->forwardToVkOffApps(Landroid/view/View;Lcom/vtosters/lite/api/ExtendedUserProfile;)V
 
     # .line 18
     # new-instance v7, Lcom/vk/core/dialogs/actionspopup/ActionsPopup$b;
