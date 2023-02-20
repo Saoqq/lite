@@ -4,17 +4,6 @@ plugins {
     id 'maven-publish'
 }
 
-publishing {
-    publications {
-        register('gh', MavenPublication) {
-            groupId 'ru.vtosters.lite'
-            artifactId 'native-effects'
-            version '1.0'
-            artifact("$buildDir/outputs/aar/native-effects-release.aar")
-        }
-    }
-}
-
 cargo {
     profile = 'release'
     module = './rust'
@@ -27,7 +16,7 @@ cargo {
 android {
     namespace 'ru.vtosters.native_effects'
     compileSdk 32
-    ndkVersion '25.1.8937393'
+    ndkVersion '25.2.9519653'
 
     defaultConfig {
         minSdk 22
